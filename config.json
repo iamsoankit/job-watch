@@ -1,0 +1,38 @@
+{
+  "include_title_keywords": [
+    "support", "associate", "analyst", "trainee", "graduate", "fresher",
+    "apprentice", "junior", "entry", "engineer i", "systems engineer",
+    "data", "sql", "technical", "operations"
+  ],
+  "exclude_title_keywords": [
+    "senior", "sr.", "sr ", "lead", "manager", "principal", "expert",
+    "director", "head", "architect", "staff", "vp ", "iii", "iv"
+  ],
+  "locations": [
+    "delhi", "ncr", "gurgaon", "gurugram", "noida", "faridabad", "ghaziabad",
+    "remote", "india", "pune", "baroda", "hyderabad", "bengaluru", "bangalore"
+  ],
+  "sources": [
+    {
+      "name": "Altera (Workday)",
+      "type": "workday",
+      "base": "https://harriscomputer.wd3.myworkdayjobs.com",
+      "tenant": "harriscomputer",
+      "site": "Altera",
+      "search": "support"
+    },
+    {
+      "name": "Altera India (Greenhouse)",
+      "type": "greenhouse",
+      "board": "alteradigitalhealthindia"
+    },
+    {
+      "name": "CSG (Workday)",
+      "type": "workday",
+      "base": "https://csgi.wd5.myworkdayjobs.com",
+      "tenant": "csgi",
+      "site": "CSGCareers",
+      "search": "support"
+    }
+  ]
+}
