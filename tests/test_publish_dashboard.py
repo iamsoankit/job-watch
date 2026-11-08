@@ -85,6 +85,7 @@ class PublishDashboardTests(unittest.TestCase):
         for index, description in enumerate([
             'Database Engineer (4-6 years)', 'At least 2-6 years of relevant experience',
             'SQL skills required', '2+ years experience', 'Freshers welcome. 5 years of experience required.',
+            '1-2 years of experience',
             '0-2 years of experience',
         ]):
             jobs.append({**self.state['jobs'][0], 'id': str(index),
@@ -92,7 +93,7 @@ class PublishDashboardTests(unittest.TestCase):
         snapshot = build_snapshot({**self.state, 'jobs': jobs,
                                    'settings': {'include_unknown_experience': True, 'max_experience': 10}},
                                   '2026-11-04T00:00:00Z')
-        self.assertEqual([job['id'] for job in snapshot['jobs']], ['5'])
+        self.assertEqual([job['id'] for job in snapshot['jobs']], ['6'])
 
     def test_rejects_non_https_job_and_search_urls(self):
         state = {

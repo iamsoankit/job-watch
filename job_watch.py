@@ -136,7 +136,7 @@ def experience(text):
         before, after = text[max(0, match.start() - 65):match.start()], text[match.end():match.end() + 90]
         numeric_range = match['high'] is not None
         context = bool(re.search(r"^['\s]*(?:of\s+)?(?:[a-z-]+\s+){0,5}experience\b", after)
-                       or re.search(r'(?:experience|minimum|at least|up to|maximum)\s*(?:of|:)?\s*$', before))
+                       or re.search(r'(?:experience|minimum|at least|more than|over|above|up to|maximum)\s*(?:of|:)?\s*$', before))
         if not numeric_range and not context:
             continue
         if re.match(r'\s*(?:degree|course|program|programme)\b', after):
@@ -145,8 +145,8 @@ def experience(text):
         high = float(match['high']) if numeric_range else low
         if re.search(r'(?:up to|maximum)\s*$', before):
             low = 0
-        unbounded = bool(match['plus'] or re.match(r'\s*(?:or more|and above|and over|plus)\b', after)
-                         or (not numeric_range and re.search(r'(?:minimum|at least)\s*$', before)))
+        unbounded = bool(match['plus'] or re.match(r'\s*(?:\+|(?:or more|and above|and over|plus|minimum)\b)', after)
+                         or (not numeric_range and re.search(r'(?:minimum|at least|more than|over|above)\s*(?:of\s*)?$', before)))
         requirements.append((low, high, unbounded, match[0]))
     if requirements:
         minimum = max(r[0] for r in requirements)
@@ -171,7 +171,7 @@ def experience(text):
 def experience_allowed(exp, maximum=2, allow_unknown=False):
     if exp['minimum'] is None:
         return allow_unknown
-    if exp['maximum'] > maximum or exp['minimum'] > maximum:
+    if exp['minimum'] != 0 or exp['maximum'] > maximum:
         return False
     return allow_unknown or not exp['open_ended']
 
