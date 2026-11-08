@@ -95,7 +95,13 @@ jobs:
       - name: Configure GitHub Pages
         id: pages
         if: always() && steps.snapshot.outcome == 'success'
+        # Pages is an owner-enabled setting; a missing site must not fail scans or state persistence.
+        continue-on-error: true
         uses: actions/configure-pages@v5
+
+      - name: Explain skipped publication
+        if: always() && steps.pages.outcome == 'failure'
+        run: echo "::warning::Dashboard not published. Enable Settings → Pages → Build and deployment → GitHub Actions, then rerun. Scans and history still completed."
 
       - name: Upload dashboard artifact
         id: upload
