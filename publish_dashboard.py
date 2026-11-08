@@ -42,7 +42,7 @@ def public_job_fields(job, as_of):
     location = str(item.get('location') or '').lower()
     local = any(term in location for term in NCR_TERMS)
     junior = any(term in title for term in ENTRY_LEVEL_TERMS)
-    experience = job_watch.experience(f"{item.get('title', '')} {item.get('description', '')}")
+    experience = job_watch.experience(item.get('description', ''))
     item['experience'] = experience
 
     posted = job_watch.parsed_date(item.get('posted_at'))
@@ -97,6 +97,8 @@ def build_snapshot(state, published_at=None):
     jobs = []
     for job in state.get('jobs', []):
         if not isinstance(job, dict) or job.get('active') is not True or not public_url(job.get('url')):
+            continue
+        if not job_watch.experience_allowed(job_watch.experience(job.get('description', ''))):
             continue
         posted = job_watch.parsed_date(job.get('posted_at'))
         age_seconds = (as_of - posted).total_seconds() if posted else None

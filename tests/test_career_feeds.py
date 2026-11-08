@@ -84,7 +84,7 @@ class CareerFeedTests(unittest.TestCase):
         from job_watch import evaluate
 
         for fetch in (career_feeds.fetch_spglobal, career_feeds.fetch_zs):
-            item = _item("Software Engineer", city="Pune")
+            item = _item("Software Engineer", city="Pune", description="0-2 years of experience")
             item["data"]["additional_locations"] = [
                 {"city": "Noida", "state": "Uttar Pradesh", "country": "India"},
                 {"city": "Noida", "state": "Uttar Pradesh", "country": "India"},

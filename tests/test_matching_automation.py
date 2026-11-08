@@ -92,8 +92,45 @@ class MatchingTests(unittest.TestCase):
             self.assertEqual(app.load_config()['profile']['skills'], ['Python'])
 
     def test_generic_fresher_titles_need_relevant_description(self):
-        self.assertIsNotNone(app.evaluate({**self.job, 'title': 'Apprentice', 'description': 'Support our data analytics team using SQL.'}, self.cfg))
+        self.assertIsNotNone(app.evaluate({**self.job, 'title': 'Apprentice', 'description': 'Freshers can apply. Support our data analytics team using SQL.'}, self.cfg))
         self.assertIsNone(app.evaluate({**self.job, 'title': 'HR Intern', 'description': 'Recruitment and people operations.'}, self.cfg))
+
+    def test_description_must_confirm_bounded_early_career_experience(self):
+        self.cfg['exclude_title_keywords'] = []
+        for description, accepted in [
+            ('Database Engineer (4-6 years)', False),
+            ('At least 2–6 years of relevant experience.', False),
+            ('Minimum four to six years of experience.', False),
+            ('0-2 years experience. Also needs 4 years of SQL experience.', False),
+            ('2+ years experience', False),
+            ('At least 2 years of experience', False),
+            ('2 years or more of experience', False),
+            ('Experience with Python and SQL.', False),
+            ('Not suitable for freshers.', False),
+            ('0-1 years experience', True),
+            ('0-2 years of professional experience', True),
+            ('One to two years of relevant experience.', True),
+            ('Up to 2 years of experience', True),
+            ('No prior experience required.', True),
+            ('Freshers can apply.', True),
+        ]:
+            with self.subTest(description=description):
+                job = {**self.job, 'title': 'Software Engineer II', 'description': description}
+                self.assertEqual(app.evaluate(job, self.cfg) is not None, accepted)
+        self.assertIsNone(app.evaluate({**self.job, 'title': 'Fresher Software Engineer', 'description': ''}, self.cfg))
+
+    def test_previously_stored_senior_matches_are_not_active_or_emailed(self):
+        self.cfg.update(exclude_title_keywords=[], include_unknown_experience=True)
+        app.CONFIG_PATH.write_text(json.dumps(self.cfg))
+        unknown = {**self.job, 'description': 'SQL and database skills required.'}
+        with patch.dict(app.FETCHERS, {'greenhouse': lambda src: iter([unknown])}):
+            app.scan()
+        with patch('smtplib.SMTP_SSL') as smtp:
+            self.assertEqual(app.send_notifications(), 0)
+            smtp.assert_not_called()
+        self.cfg['include_unknown_experience'] = False
+        app.CONFIG_PATH.write_text(json.dumps(self.cfg))
+        self.assertFalse(app.state()['jobs'][0]['active'])
 
     def test_profile_validation(self):
         for extra in [{'profile': {'skills': 'Python'}}, {'profile': {'skills': ['']}}, {'auto_scan_minutes': 0}, {'include_unknown_date': 'false'}, {'country': 'UK'}]:

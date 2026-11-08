@@ -39,6 +39,7 @@ class WatchTests(unittest.TestCase):
                 self.assertIsNone(app.evaluate({**self.job, **overrides}, self.cfg))
 
     def test_unknown_experience_is_explicit(self):
+        self.cfg['include_unknown_experience'] = True
         result = app.evaluate({**self.job, 'description': ''}, self.cfg)
         self.assertIsNone(result['experience']['minimum'])
         self.cfg['include_unknown_experience'] = False

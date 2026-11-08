@@ -123,12 +123,57 @@ def db():
 
 
 def experience(text):
-    text = clean(text).lower().replace('–', '-').replace('—', '-')
-    patterns = [r'(\d+)\s*(?:(?:-|to)\s*\d+\s*)?\+?\s*(?:years?|yrs?)(?:\s+of)?\s+(?:[a-z-]+\s+){0,5}experience',
-                r'(?:experience|minimum|at least)\s*(?:of|:)?\s*(\d+)\s*(?:(?:-|to)\s*\d+\s*)?\+?\s*(?:years?|yrs?)']
-    values = [int(m) for p in patterns for m in re.findall(p, text)]
-    minimum = max(values) if values else None
-    return {'minimum': minimum, 'label': f'{minimum}+ years mentioned' if minimum is not None else 'Experience not confirmed — review posting'}
+    text = clean(text).lower().replace('–', '-').replace('—', '-').replace('’', "'")
+    words = 'zero one two three four five six seven eight nine ten eleven twelve'.split()
+    text = re.sub(r'\b(' + '|'.join(words) + r')\b', lambda m: str(words.index(m[0])), text)
+    number = r'\d+(?:\.\d+)?'
+    pattern = re.compile(
+        rf'(?<![\w.])(?P<low>{number})\s*(?:(?:-|to)\s*(?P<high>{number})\s*)?'
+        r'(?P<plus>\+)?\s*(?:years?|yrs?)\b'
+    )
+    requirements = []
+    for match in pattern.finditer(text):
+        before, after = text[max(0, match.start() - 65):match.start()], text[match.end():match.end() + 90]
+        numeric_range = match['high'] is not None
+        context = bool(re.search(r"^['\s]*(?:of\s+)?(?:[a-z-]+\s+){0,5}experience\b", after)
+                       or re.search(r'(?:experience|minimum|at least|up to|maximum)\s*(?:of|:)?\s*$', before))
+        if not numeric_range and not context:
+            continue
+        if re.match(r'\s*(?:degree|course|program|programme)\b', after):
+            continue
+        low = float(match['low'])
+        high = float(match['high']) if numeric_range else low
+        if re.search(r'(?:up to|maximum)\s*$', before):
+            low = 0
+        unbounded = bool(match['plus'] or re.match(r'\s*(?:or more|and above|and over|plus)\b', after)
+                         or (not numeric_range and re.search(r'(?:minimum|at least)\s*$', before)))
+        requirements.append((low, high, unbounded, match[0]))
+    if requirements:
+        minimum = max(r[0] for r in requirements)
+        maximum = max(r[1] for r in requirements)
+        open_ended = any(r[2] for r in requirements)
+        label = f'{minimum:g}–{maximum:g} years mentioned' if minimum != maximum else f'{minimum:g} years mentioned'
+        if open_ended:
+            label += ' (open-ended requirement)'
+        return {'minimum': minimum, 'maximum': maximum, 'open_ended': open_ended,
+                'evidence': [r[3] for r in requirements], 'label': label}
+    fresher = re.search(
+        r'\b(?:freshers?\s+(?:are\s+)?(?:welcome|can apply|may apply|eligible)|'
+        r'(?:open to|suitable for)\s+freshers?|no\s+(?:prior\s+|previous\s+|work\s+|professional\s+)?experience\s+(?:is\s+)?(?:required|necessary))\b', text)
+    negative = re.search(r"\b(?:not\s+(?:open to|suitable for)\s+freshers?|no\s+freshers?|freshers?\s+(?:are\s+)?not\s+(?:eligible|welcome|allowed))\b", text)
+    if fresher and not negative:
+        return {'minimum': 0, 'maximum': 0, 'open_ended': False,
+                'evidence': [fresher[0]], 'label': 'Fresher / no prior experience required in description'}
+    return {'minimum': None, 'maximum': None, 'open_ended': False, 'evidence': [],
+            'label': 'Experience not confirmed — review posting'}
+
+
+def experience_allowed(exp, maximum=2, allow_unknown=False):
+    if exp['minimum'] is None:
+        return allow_unknown
+    if exp['maximum'] > maximum or exp['minimum'] > maximum:
+        return False
+    return allow_unknown or not exp['open_ended']
 
 
 def parsed_date(value):
@@ -157,10 +202,8 @@ def evaluate(job, cfg):
         return None
     if loc and cfg['locations'] and not any(contains(loc, x) for x in cfg['locations']):
         return None
-    exp = experience(title + ' ' + clean(job.get('description')))
-    if exp['minimum'] is not None and exp['minimum'] > cfg.get('max_experience', 2):
-        return None
-    if exp['minimum'] is None and not cfg.get('include_unknown_experience', True):
+    exp = experience(job.get('description', ''))
+    if not experience_allowed(exp, cfg.get('max_experience', 2), cfg.get('include_unknown_experience', False)):
         return None
     posted = parsed_date(job.get('posted_at'))
     if posted and posted > datetime.now(timezone.utc) + timedelta(days=1):
@@ -397,7 +440,8 @@ def scan(dry_run=False, locked=False):
 
 def send_notifications():
     snapshot = state()
-    jobs = [j for j in snapshot['jobs'] if not j['notified_at'] and j['active'] and j['status'] not in {'archived', 'rejected', 'applied', 'interview'}]
+    jobs = [j for j in snapshot['jobs'] if not j['notified_at'] and j['active'] and j['status'] not in {'archived', 'rejected', 'applied', 'interview'}
+            and experience_allowed(experience(j.get('description', '')))]
     errors = [s for s in snapshot['sources'] if s['status'] == 'error']
     if not jobs and not errors:
         return 0

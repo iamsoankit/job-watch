@@ -12,7 +12,7 @@ class PublishDashboardTests(unittest.TestCase):
             'jobs': [{
                 'id': 'public-id', 'title': 'Graduate Analyst', 'source': 'Example',
                 'location': 'Noida, India', 'url': 'https://jobs.example/123',
-                'description': 'Public posting', 'posted_at': '2026-11-01',
+                'description': 'Public posting. 0-2 years of experience', 'posted_at': '2026-11-01',
                 'updated_at': '2026-11-02', 'experience': {'minimum': 0},
                 'score': 100, 'reasons': ['Your skills mentioned: PRIVATE PYTHON'],
                 'profile_matches': ['PRIVATE PYTHON'], 'profile_gaps': ['PRIVATE KUBERNETES'],
@@ -47,10 +47,10 @@ class PublishDashboardTests(unittest.TestCase):
         self.assertNotIn('source_id', job)
         self.assertNotIn('profile_matches', job)
         self.assertNotIn('profile_gaps', job)
-        self.assertEqual(job['score'], 70)
+        self.assertEqual(job['score'], 90)
         self.assertEqual(job['reasons'], [
             'Delhi NCR location', 'Entry-level title signal',
-            'Experience not confirmed — review posting', 'Posting date available',
+            '0–2 years mentioned', 'Posting date available',
         ])
         self.assertEqual(snapshot['sources'], [{
             'name': 'Example', 'type': 'greenhouse', 'status': 'error', 'count': 2,
@@ -79,6 +79,20 @@ class PublishDashboardTests(unittest.TestCase):
         ]
         snapshot = build_snapshot({**self.state, 'jobs': jobs, 'settings': {'max_age_days': 14}}, '2026-11-04T00:00:00Z')
         self.assertEqual([job['id'] for job in snapshot['jobs']], ['public-id'])
+
+    def test_export_revalidates_description_not_stored_experience_or_title(self):
+        jobs = []
+        for index, description in enumerate([
+            'Database Engineer (4-6 years)', 'At least 2-6 years of relevant experience',
+            'SQL skills required', '2+ years experience', 'Freshers welcome. 5 years of experience required.',
+            '0-2 years of experience',
+        ]):
+            jobs.append({**self.state['jobs'][0], 'id': str(index),
+                         'title': 'Fresher Software Engineer', 'description': description})
+        snapshot = build_snapshot({**self.state, 'jobs': jobs,
+                                   'settings': {'include_unknown_experience': True, 'max_experience': 10}},
+                                  '2026-11-04T00:00:00Z')
+        self.assertEqual([job['id'] for job in snapshot['jobs']], ['5'])
 
     def test_rejects_non_https_job_and_search_urls(self):
         state = {

@@ -53,7 +53,7 @@
     "india remote"
   ],
   "max_experience": 2,
-  "include_unknown_experience": true,
+  "include_unknown_experience": false,
   "include_unknown_location": false,
   "max_age_days": 14,
   "sources": [
