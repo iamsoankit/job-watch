@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7f6">
+  <meta name="description" content="A calm, focused workspace for finding and tracking your next role.">
+  <meta name="job-watch-mode" content="local">
+  <title>Northstar — Job search workspace</title>
+  <link rel="stylesheet" href="static/style.css">
+  <script src="static/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="Northstar home">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M16 3.5 19 13l9.5 3-9.5 3-3 9.5L13 19l-9.5-3 9.5-3 3-9.5Z"/><circle cx="16" cy="16" r="2.2"/></svg></span>
+        <span>northstar<span class="brand-dot">.</span></span>
+      </a>
+      <div class="topbar-right">
+        <span class="today-label" id="today-label"></span>
+        <span class="connection" id="connection"><span class="connection-dot"></span><span id="connection-label">Connecting…</span></span>
+        <button class="button button-primary scan-button" id="scan-button" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 8A6.5 6.5 0 0 0 5.3 4.5L3.5 6.3M3.5 6.3V2.8m0 3.5H7M3.5 12a6.5 6.5 0 0 0 11.2 3.5l1.8-1.8m0 0v3.5m0-3.5H13"/></svg><span>Scan for jobs</span></button>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="welcome-row" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow"><span class="eyebrow-line"></span> YOUR NEXT CHAPTER, IN VIEW</p>
+          <h1 id="page-title">A smarter way to find <em>your next role.</em></h1>
+          <p class="welcome-copy">One focused place to discover, prioritize, and keep up with the roles that fit. <a class="directory-jump" href="#company-directory">Browse all companies →</a></p>
+        </div>
+        <div class="scan-summary" id="scan-summary" aria-live="polite"><span class="summary-icon" aria-hidden="true">↗</span><span id="scan-summary-text">Your search, ready when you are.</span></div>
+      </section>
+      <p class="read-only-notice" id="read-only-notice" hidden>Auto-updated discovery view; track applications locally.</p>
+
+      <section class="metrics" aria-label="Job search overview">
+        <article class="metric-card metric-highlight"><div class="metric-top"><span>Active opportunities</span><span class="metric-icon">◈</span></div><strong id="metric-active">—</strong><small>roles in your workspace</small></article>
+        <article class="metric-card"><div class="metric-top"><span>New to you</span><span class="metric-icon metric-teal">✳</span></div><strong id="metric-new">—</strong><small>ready for a closer look</small></article>
+        <article class="metric-card"><div class="metric-top"><span>Saved roles</span><span class="metric-icon metric-orange">♡</span></div><strong id="metric-saved">—</strong><small>on your shortlist</small></article>
+        <article class="metric-card"><div class="metric-top"><span>In progress</span><span class="metric-icon metric-blue">↗</span></div><strong id="metric-progress">—</strong><small>applied or interviewing</small></article>
+      </section>
+
+      <section class="workspace-grid">
+        <div class="main-column">
+          <section class="jobs-panel panel" aria-labelledby="jobs-heading">
+            <div class="panel-heading jobs-heading-row">
+              <div><p class="eyebrow eyebrow-small">YOUR OPPORTUNITY BOARD</p><h2 id="jobs-heading">Find your fit <span class="count-pill" id="job-count">0</span></h2></div>
+              <label class="sort-wrap"><span class="sr-only">Sort jobs</span><select id="sort-select"><option value="fresh">Recently discovered</option><option value="score">Highest priority</option><option value="title">Role A–Z</option></select></label>
+            </div>
+            <div class="filters">
+              <label class="search-field"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.8"/><path d="m13.2 13.2 4 4"/></svg><span class="sr-only">Search roles</span><input id="search-input" type="search" placeholder="Search title, company, or keyword…" autocomplete="off"></label>
+              <label class="filter-select"><span class="sr-only">Filter by status</span><select id="status-filter"><option value="all">All statuses</option><option value="new">New</option><option value="saved">Saved</option><option value="applied">Applied</option><option value="interview">Interview</option><option value="rejected">Rejected</option><option value="archived">Archived</option></select></label>
+              <label class="filter-select"><span class="sr-only">Filter by location</span><select id="location-filter"><option value="all">All locations</option></select></label>
+              <label class="filter-select"><span class="sr-only">Filter by posting age</span><select id="posted-age-filter"><option value="7">Posted in last 7 days</option><option value="14" selected>Posted in last 14 days</option><option value="all">Any posting date</option></select></label>
+              <label class="date-unknown-toggle"><input id="include-unknown-date" type="checkbox"> Include unknown posting dates</label>
+              <label class="filter-select history-filter"><span class="sr-only">Choose whether to include archived and inactive roles</span><select id="job-scope"><option value="current">Current roles</option><option value="all">Include archived &amp; inactive</option></select></label>
+            </div>
+            <div class="job-list" id="job-list" aria-live="polite" aria-busy="true"></div>
+            <div class="pagination-note" id="results-note"></div>
+          </section>
+          <section class="directory-panel panel" id="company-directory" aria-labelledby="directory-heading">
+            <div class="panel-heading directory-heading-row"><div><p class="eyebrow eyebrow-small">OFFICIAL INDIA CAREER PAGES</p><h2 id="directory-heading">Company directory <span class="count-pill" id="company-count">0</span></h2></div><label class="directory-search"><span class="sr-only">Search companies</span><input id="company-search" type="search" placeholder="Find a company…" autocomplete="off"></label></div>
+            <p class="side-intro">Open the employer’s own India careers page and check fresher or early-career roles in Gurugram NCR and Noida. A manual link is not reported as a scanned source.</p>
+            <div class="company-list" id="company-list" aria-live="polite"><p class="muted-copy">Loading company coverage…</p></div>
+          </section>
+          <section class="guide-panel panel" aria-labelledby="guide-heading">
+            <div class="guide-copy"><span class="guide-icon" aria-hidden="true">✳</span><div><p class="eyebrow eyebrow-small">A GOOD SEARCH IS A HUMAN ONE</p><h2 id="guide-heading">Search widely. Apply thoughtfully.</h2><p>Start with Google Careers, then check employer pages and trusted job boards directly. Set the location and experience filters there, and confirm eligibility on the original posting before applying.</p></div></div>
+            <div class="guide-links" id="search-links"><p class="muted-copy">Career-site links from your setup will appear here.</p></div>
+            <div class="guide-footnote"><span>↗</span> Applying always happens on the employer’s website. This dashboard never submits applications for you.</div>
+            <details class="linkedin-guide" id="linkedin-guide"><summary>LinkedIn alerts without automation (one-time setup)</summary>
+              <ol>
+                <li>Open any <strong>LinkedIn jobs · 24h</strong> link in the company directory, then switch the <strong>job alert</strong> toggle on at the bottom of the results and choose daily or instant notifications. LinkedIn allows up to 20 alerts, so create one per role and location.</li>
+                <li>Follow each company page and turn on the bell for recruiters you find under <strong>Recruiter posts</strong>; LinkedIn then notifies you when they post.</li>
+                <li>Treat a “reposted” or refreshed listing as unverified until you see the original posting date on the employer page.</li>
+              </ol>
+              <p class="muted-copy">This tool never logs in to LinkedIn or scrapes it: LinkedIn prohibits bots and automation and can restrict accounts that use them. These links open LinkedIn’s own search in your browser.</p>
+            </details>
+          </section>
+        </div>
+
+        <aside class="side-column" aria-label="Search setup and source status">
+          <section class="sources-panel panel" aria-labelledby="sources-heading">
+            <div class="panel-heading"><div><p class="eyebrow eyebrow-small">COVERAGE</p><h2 id="sources-heading">Your sources</h2></div><span class="source-count" id="source-count">—</span></div>
+            <p class="side-intro">A quick read on the career sites in your search.</p>
+            <div class="source-list" id="source-list"><p class="muted-copy">Loading source health…</p></div>
+            <div class="source-footer"><span class="health-legend"><i class="legend-dot healthy"></i> Ready</span><span class="health-legend"><i class="legend-dot issue"></i> Needs attention</span></div>
+          </section>
+          <section class="setup-panel panel" id="setup-panel" aria-labelledby="setup-heading">
+            <div class="panel-heading"><div><p class="eyebrow eyebrow-small">MAKE IT YOURS</p><h2 id="setup-heading">Search preferences</h2></div><span class="settings-mark" aria-hidden="true">⚙</span></div>
+            <p class="side-intro">Choose the roles and places you want to hear about.</p>
+            <form id="settings-form">
+              <label class="form-label" for="role-keywords">Role keywords <span>Separate with commas or new lines</span></label>
+              <textarea id="role-keywords" rows="3" placeholder="software engineer, data analyst, product manager"></textarea>
+              <label class="form-label" for="profile-skills">Profile skills <span>Optional; use only skills from your own profile</span></label>
+              <textarea id="profile-skills" rows="2" placeholder="Add your skills, separated by commas"></textarea>
+              <label class="form-label" for="locations">Preferred locations <span>Include remote if it suits you</span></label>
+              <textarea id="locations" rows="2" placeholder="Delhi, Gurugram, Noida, Remote"></textarea>
+              <label class="form-label" for="max-experience">Max required experience (years) <span>Posting filter only; always verify eligibility with the employer.</span></label>
+              <input id="max-experience" type="number" min="0" max="20" step="1" value="2" required>
+              <label class="form-label" for="max-age-days">Maximum posting age (days) <span>Recent roles only; default is 14 days</span></label>
+              <input id="max-age-days" type="number" min="1" max="3650" step="1" value="14" required>
+              <label class="check-label"><input id="include-unknown-experience" type="checkbox"> Include roles with unlisted experience</label>
+              <label class="check-label"><input id="include-unknown-date-setting" type="checkbox"> Include roles with unknown posting dates</label>
+              <p class="country-note">Search country: <strong>India</strong></p>
+              <details class="advanced-settings"><summary>Advanced: career sources</summary><label class="form-label advanced-label" for="sources-json">Sources configuration <span>Valid JSON array</span></label><textarea id="sources-json" class="source-editor" rows="7" spellcheck="false" placeholder="[]"></textarea></details>
+              <button class="button button-outline save-settings" id="settings-save" type="submit">Save preferences</button>
+              <p class="form-feedback" id="settings-feedback" role="status"></p>
+            </form>
+          </section>
+          <section class="tip-card"><span class="tip-mark" aria-hidden="true">“</span><p>Fresh postings can move quickly. A short, thoughtful application beats a rushed one.</p><span class="tip-caption">YOUR SEARCH, YOUR PACE</span></section>
+        </aside>
+      </section>
+      <footer class="page-footer"><span>Made for the next good thing.</span><span>Always confirm details on the original career page.</span></footer>
+    </main>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+</body>
+</html>

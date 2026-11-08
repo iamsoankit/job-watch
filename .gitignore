@@ -1,0 +1,25 @@
+# Local job/application data and runtime files
+data/
+.hoplite/runtime/
+.hoplite/artifacts/
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite3-journal
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Local environments and secrets
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Private resume documents and matching profile
+.private/
+profile.json
+
+.hoplite/attachments/

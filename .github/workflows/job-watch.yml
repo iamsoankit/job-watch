@@ -1,0 +1,152 @@
+name: Job watch
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+    - cron: '20 2 * * *'
+  workflow_dispatch:
+  pull_request:
+
+concurrency:
+  group: job-watch-state
+  cancel-in-progress: false
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run tests
+        run: python -m unittest discover -s tests
+
+  scan:
+    needs: tests
+    if: github.event_name != 'pull_request' && needs.tests.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: read
+    outputs:
+      publish_ready: ${{ steps.upload.outcome == 'success' && steps.persist.outcome == 'success' }}
+    steps:
+      - name: Check out default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Restore automation database
+        id: restore
+        env:
+          JOB_WATCH_DB: data/jobs.sqlite3
+        run: |
+          if git ls-remote --exit-code --heads origin job-watch-state >/dev/null; then
+            git fetch origin refs/heads/job-watch-state:refs/remotes/origin/job-watch-state
+            mkdir -p "$(dirname "$JOB_WATCH_DB")"
+            git show origin/job-watch-state:data/jobs.sqlite3 > "$RUNNER_TEMP/jobs.sqlite3"
+            cp "$RUNNER_TEMP/jobs.sqlite3" "$JOB_WATCH_DB"
+          else
+            status=$?
+            if [ "$status" -ne 2 ]; then
+              echo "Could not check remote state branch (git ls-remote exited $status)." >&2
+              exit "$status"
+            fi
+            echo "No job-watch-state branch yet; this scan starts with an empty history."
+          fi
+
+      - name: Scan and email when configured
+        id: scan
+        env:
+          JOB_WATCH_DB: data/jobs.sqlite3
+          JOB_PROFILE_JSON: ${{ secrets.JOB_PROFILE_JSON }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: |
+          if [ -n "$EMAIL_USER" ] && [ -n "$EMAIL_APP_PASSWORD" ]; then
+            python job_watch.py --db "$JOB_WATCH_DB" scan --email
+          else
+            if [ -n "$EMAIL_USER$EMAIL_APP_PASSWORD$EMAIL_TO" ]; then
+              echo "::warning::EMAIL_USER and EMAIL_APP_PASSWORD are required; scanning without email."
+            fi
+            python job_watch.py --db "$JOB_WATCH_DB" scan
+          fi
+
+      - name: Build public dashboard snapshot
+        id: snapshot
+        if: always() && steps.restore.outcome == 'success' && steps.scan.outcome != 'skipped' && vars.PUBLISH_DASHBOARD != 'false' && (github.event_name == 'workflow_dispatch' || github.event.schedule == '20 2 * * *')
+        env:
+          JOB_WATCH_DB: data/jobs.sqlite3
+        run: python publish_dashboard.py --output "$RUNNER_TEMP/dashboard"
+
+      - name: Configure GitHub Pages
+        id: pages
+        if: always() && steps.snapshot.outcome == 'success'
+        uses: actions/configure-pages@v5
+
+      - name: Upload dashboard artifact
+        id: upload
+        if: always() && steps.pages.outcome == 'success'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/dashboard
+
+      - name: Persist automation database
+        id: persist
+        if: always() && steps.scan.outcome != 'skipped'
+        env:
+          JOB_WATCH_DB: data/jobs.sqlite3
+        run: |
+          if [ ! -f "$JOB_WATCH_DB" ]; then
+            echo "No database was created; preserving existing state."
+            exit 0
+          fi
+
+          cp "$JOB_WATCH_DB" "$RUNNER_TEMP/jobs.sqlite3"
+          if git show-ref --verify --quiet refs/remotes/origin/job-watch-state; then
+            git checkout -B job-watch-state origin/job-watch-state
+          else
+            git checkout --orphan job-watch-state
+            git rm -rf --ignore-unmatch .
+          fi
+          mkdir -p data
+          cp "$RUNNER_TEMP/jobs.sqlite3" data/jobs.sqlite3
+          git add -f -- data/jobs.sqlite3
+          if git diff --cached --quiet; then
+            echo "Automation database is unchanged."
+          else
+            git -c user.name='github-actions[bot]' \
+                -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+                commit -m 'Update job watch state'
+            git push origin HEAD:job-watch-state
+          fi
+
+  deploy:
+    needs: scan
+    if: always() && needs.scan.outputs.publish_ready == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy dashboard
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages
