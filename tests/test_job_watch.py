@@ -101,6 +101,16 @@ class WatchTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 app.validate_config({**self.cfg, **override})
 
+    def test_linkedin_links_are_official_search_urls_only(self):
+        links = app.linkedin_links('S&P Global')
+        self.assertTrue(links['linkedin_jobs_url'].startswith('https://www.linkedin.com/jobs/search/?'))
+        self.assertTrue(links['linkedin_posts_url'].startswith('https://www.linkedin.com/search/results/content/?'))
+        self.assertIn('f_TPR=r86400', links['linkedin_jobs_url'])
+        self.assertIn('%22S%26P+Global%22', links['linkedin_jobs_url'])
+        self.assertFalse(any('linkedin' in name for name in app.FETCHERS))
+        company = next(s for s in app.state()['sources'] if s['name'] == 'Test')
+        self.assertTrue(all(app.safe_url(company[key]) for key in ('linkedin_jobs_url', 'linkedin_posts_url')))
+
     def test_search_links_include_google_and_native_platforms(self):
         links = app.search_links(self.cfg)
         self.assertEqual(sum('Google' in link['name'] for link in links), 4)

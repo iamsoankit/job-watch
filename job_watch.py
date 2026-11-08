@@ -269,6 +269,16 @@ def search_links(cfg):
     return links
 
 
+def linkedin_links(company):
+    """Official LinkedIn search URLs for a company; opened by the user, never fetched by this tool."""
+    jobs = urlencode({'keywords': f'"{company}" (software OR data OR product OR analyst)', 'location': 'Delhi, India',
+                      'f_TPR': 'r86400', 'f_E': '1,2', 'sortBy': 'DD'})
+    posts = urlencode({'keywords': f'"{company}" hiring (fresher OR "entry level" OR "0-2 years") (Gurugram OR Gurgaon OR Noida OR Delhi)',
+                       'sortBy': '"date_posted"'})
+    return {'linkedin_jobs_url': 'https://www.linkedin.com/jobs/search/?' + jobs,
+            'linkedin_posts_url': 'https://www.linkedin.com/search/results/content/?' + posts}
+
+
 def source_career_url(src):
     if src.get('career_url'):
         return src['career_url']
@@ -354,7 +364,7 @@ def state():
                             'career_url': source_career_url(src), 'coverage': 'manual' if manual else 'automated',
                             'status': 'manual' if manual else 'not_checked', 'date_support': 'unknown',
                             'checked_at': None, 'error': src.get('reason') if manual else None,
-                            'count': 0, 'matched': 0, **checked.get(src['name'], {})})
+                            'count': 0, 'matched': 0, **checked.get(src['name'], {}), **linkedin_links(src['name'])})
         return {'jobs': jobs, 'sources': sources, 'last_scan': get_meta(conn, 'last_scan'), 'scanning': SCAN_LOCK.locked(), 'settings': cfg, 'search_links': search_links(cfg), 'read_only': False,
                 'automation': {'mode': 'local', 'running': SCHEDULER_RUNNING, 'interval_minutes': cfg.get('auto_scan_minutes', 30),
                                'next_scan': SCHEDULER_NEXT, 'message': 'Scans automatically while this server is running; the browser can be closed.' if SCHEDULER_RUNNING else 'Automatic local scans start when you run serve. GitHub scheduling is separate.'}}

@@ -9,3 +9,10 @@
 @media(max-width:540px){.date-unknown-toggle{flex:1 1 100%;padding:2px 4px}.directory-panel{padding:17px 14px}.company-row{gap:9px}.directory-search input{height:36px}}
 
 .directory-jump{display:inline-block;color:var(--teal);font-weight:600;margin-left:5px}#company-directory{scroll-margin-top:20px}
+
+.company-linkedin { display: flex; flex-wrap: wrap; gap: 0.4rem 0.75rem; margin-top: 0.35rem; }
+.company-linkedin .career-link { font-size: 0.8rem; padding: 0.15rem 0; }
+.linkedin-guide { margin-top: 1rem; font-size: 0.9rem; }
+.linkedin-guide summary { cursor: pointer; font-weight: 600; }
+.linkedin-guide ol { padding-left: 1.2rem; margin: 0.6rem 0; }
+.linkedin-guide li { margin-bottom: 0.4rem; }

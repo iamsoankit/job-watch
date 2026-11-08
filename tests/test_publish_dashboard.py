@@ -3,6 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
+import job_watch
 from publish_dashboard import build_snapshot, publish
 
 
@@ -57,11 +58,13 @@ class PublishDashboardTests(unittest.TestCase):
             'matched': 1, 'checked_at': '2026-11-03T10:00:00Z',
             'coverage': 'automated', 'country': 'India', 'date_support': 'published',
             'career_url': 'https://careers.example/jobs',
+            **job_watch.linkedin_links('Example'),
         }])
         self.assertEqual(snapshot['companies'], [{
             'name': 'Example', 'coverage': 'automated', 'country': 'India',
             'date_support': 'published', 'status': 'ok', 'checked_at': '2026-11-03T10:00:00Z',
             'count': 2, 'matched': 1, 'career_url': 'https://careers.example/jobs',
+            **job_watch.linkedin_links('Example'),
         }])
         self.assertNotIn('settings', snapshot)
         self.assertTrue(snapshot['read_only'])

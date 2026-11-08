@@ -84,6 +84,8 @@ def company_metadata(records):
             company['checked_at'] = checked_at
         if public_url(record.get('career_url')):
             company['career_url'] = record['career_url']
+        if isinstance(record.get('name'), str) and record['name']:
+            company.update(job_watch.linkedin_links(record['name']))
         companies.append(company)
     return companies
 
