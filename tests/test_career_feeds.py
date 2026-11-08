@@ -80,6 +80,26 @@ class CareerFeedTests(unittest.TestCase):
         ])
         self.assertEqual([job["title"] for job in jobs], ["Noida associate"])
 
+    def test_additional_ncr_location_survives_normal_matching(self):
+        from job_watch import evaluate
+
+        for fetch in (career_feeds.fetch_spglobal, career_feeds.fetch_zs):
+            item = _item("Software Engineer", city="Pune")
+            item["data"]["additional_locations"] = [
+                {"city": "Noida", "state": "Uttar Pradesh", "country": "India"},
+                {"city": "Noida", "state": "Uttar Pradesh", "country": "India"},
+            ]
+            payload = {"totalCount": 1, "jobs": [item]}
+            with self.subTest(source=fetch.__name__), \
+                    patch.object(career_feeds, "_request", return_value=payload):
+                jobs = list(fetch({}))
+                self.assertEqual(len(jobs), 1)
+                self.assertEqual(jobs[0]["location"], "Pune, India; Noida, Uttar Pradesh, India")
+                self.assertIsNotNone(evaluate(jobs[0], {
+                    "include_title_keywords": ["software engineer"],
+                    "exclude_title_keywords": [], "locations": ["noida"], "max_age_days": 0,
+                }))
+
     def test_bad_total_and_incomplete_page_are_errors(self):
         with patch.object(career_feeds, "_request", return_value={"jobs": []}):
             with self.assertRaisesRegex(SourceError, "totalCount"):

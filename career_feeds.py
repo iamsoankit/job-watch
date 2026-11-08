@@ -51,11 +51,16 @@ def _posting(source, item):
     if not isinstance(source_id, (str, int)) or not _SOURCE_ID.fullmatch(str(source_id)):
         raise SourceError(f"{source} API returned a job without a valid source ID")
     posted_at = _date(job.get("posted_date"))
+    locations = [job]
+    extra = job.get("additional_locations") or []
+    if isinstance(extra, list):
+        locations.extend(loc for loc in extra if isinstance(loc, dict))
+    labels = [loc.get("full_location") or loc.get("location_name") or loc.get("short_location") or ", ".join(
+        str(loc.get(key)) for key in ("city", "state", "country") if loc.get(key)
+    ) for loc in locations]
     result = {
         "title": job.get("title") or "",
-        "location": job.get("full_location") or job.get("location_name") or ", ".join(
-            str(job.get(key)) for key in ("city", "state", "country") if job.get(key)
-        ),
+        "location": "; ".join(dict.fromkeys(label for label in labels if label)),
         "url": f"{_SOURCES[source]}/jobs/{source_id}?lang=en-us",
         "description": job.get("description") or "",
         "posted_at": posted_at,
