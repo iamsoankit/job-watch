@@ -3,8 +3,10 @@ name: Job watch
 on:
   schedule:
     - cron: '*/30 * * * *'
-    - cron: '20 2 * * *'
   workflow_dispatch:
+  push:
+    branches:
+      - main
   pull_request:
 
 concurrency:
@@ -17,7 +19,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Check out pull request
+      - name: Check out repository
         uses: actions/checkout@v4
 
       - name: Set up Python 3.11
@@ -87,7 +89,7 @@ jobs:
 
       - name: Build public dashboard snapshot
         id: snapshot
-        if: always() && steps.restore.outcome == 'success' && steps.scan.outcome != 'skipped' && vars.PUBLISH_DASHBOARD != 'false' && (github.event_name == 'workflow_dispatch' || github.event.schedule == '20 2 * * *')
+        if: always() && steps.restore.outcome == 'success' && steps.scan.outcome != 'skipped' && vars.PUBLISH_DASHBOARD != 'false'
         env:
           JOB_WATCH_DB: data/jobs.sqlite3
         run: python publish_dashboard.py --output "$RUNNER_TEMP/dashboard"

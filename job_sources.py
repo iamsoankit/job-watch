@@ -98,7 +98,8 @@ def _date(value):
     if not isinstance(value, str):
         return ""
     try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        norm = re.sub(r"([+-]\d{2})(\d{2})$", r"\1:\2", value.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(norm)
         return parsed.isoformat()
     except ValueError:
         return ""
